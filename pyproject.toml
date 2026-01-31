@@ -1,0 +1,32 @@
+[project]
+name = "counterfactual-data-synthesis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "aioboto3",
+  "botocore",
+  "geopandas",
+  "matplotlib",
+  "nuplan-devkit @ git+https://github.com/motional/nuplan-devkit.git",
+  "numpy",
+  "opencv-python-headless",
+  "pandas",
+  "pillow",
+  "psutil",
+  "pyarrow",
+  "pyquaternion",
+  "pyyaml",
+  "rasterio",
+  "requests",
+  "retry",
+  "scipy",
+  "shapely",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]

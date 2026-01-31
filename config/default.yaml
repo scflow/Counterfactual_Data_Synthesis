@@ -1,0 +1,21 @@
+seed: 2026
+sample:
+  t_hist: 2.0
+  t_fut: 6.0
+  dt: null
+vehicle:
+  wheel_base: 2.8
+  steer_limit: 0.6
+  a_min: -6.0
+  a_max: 3.0
+  a_lat_max: 4.0
+output:
+  format: parquet
+  overwrite: false
+recover:
+  cte_threshold: 0.8
+  yaw_threshold: 0.2
+  pid_gain_scale: 2.0
+  min_frames: 5
+  window_sec: 2.0
+  desired_speed_recover: 6.0

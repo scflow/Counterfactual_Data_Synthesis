@@ -1,0 +1,31 @@
+Metadata-Version: 2.4
+Name: counterfactual-data-synthesis
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: aioboto3
+Requires-Dist: botocore
+Requires-Dist: geopandas
+Requires-Dist: matplotlib
+Requires-Dist: nuplan-devkit @ git+https://github.com/motional/nuplan-devkit.git
+Requires-Dist: numpy
+Requires-Dist: opencv-python-headless
+Requires-Dist: pandas
+Requires-Dist: pillow
+Requires-Dist: psutil
+Requires-Dist: pyarrow
+Requires-Dist: pyquaternion
+Requires-Dist: pyyaml
+Requires-Dist: rasterio
+Requires-Dist: requests
+Requires-Dist: retry
+Requires-Dist: scipy
+Requires-Dist: shapely
+Requires-Dist: tqdm
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+
+# Counterfactual Data Synthesis (nuPlan)
+
+Engineering scaffold for vector-based counterfactual data generation.

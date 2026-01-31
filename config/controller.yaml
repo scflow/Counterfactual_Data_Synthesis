@@ -1,0 +1,12 @@
+controller:
+  pid:
+    kp: 1.2
+    ki: 0.0
+    kd: 0.2
+  idm:
+    desired_speed: 13.9
+    min_gap: 2.0
+    time_headway: 1.2
+    max_accel: 1.5
+    comfortable_brake: 2.0
+    delta: 4.0

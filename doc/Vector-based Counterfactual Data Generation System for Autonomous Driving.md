@@ -1,159 +1,262 @@
-# 方案名称：基于纯向量仿真的反事实自动驾驶数据生成系统
+# 工程实现式方案：基于 nuPlan 的纯向量反事实自动驾驶数据生成系统
 
-**(Vector-based Counterfactual Data Generation System for Autonomous Driving)**
+**(Engineering Spec: nuPlan-based Vector Counterfactual Data Generation System)**
 
-## 1. 项目背景与核心目标
+## 0. 目标与边界
 
-### 1.1 背景
+### 目标
+- 从 nuPlan 场景中批量生成反事实轨迹，用于训练/评测规划控制与行为预测。
+- 保证高效率、可复现、可控扰动、物理合理。
 
-当前自动驾驶模型训练面临严重的**长尾数据匮乏**问题。真实路测数据中，99% 都是枯燥的正常驾驶，极度缺乏“危险边缘”或“错误修正”的高价值样本。依靠真实碰撞采集数据不仅成本高昂，而且由于伦理限制不可行。
-
-### 1.2 目标
-
-构建一套**轻量级、高并发**的数据工厂，利用真实路采数据（Log Data），通过数学仿真手段生成海量**“反事实（Counterfactual）”**轨迹数据。这些数据描述了“如果在某时刻车辆发生了误操作（如误踩油门、偏离车道），专家系统是如何将其安全救回的”。
-
-### 1.3 核心指标
-
-* **仿真类型**：纯向量/状态仿真（无图像渲染），速度需达到实时流的 1000 倍以上。
-* **可复现性**：通过种子机制（Seed Mechanism）实现 100% 的场景确定性复现。
-* **物理真实性**：基于运动学自行车模型，确保轨迹符合车辆物理限制。
+### 边界
+- 仅做向量/状态级仿真，不渲染图像。
+- 不重建全量感知，仅使用 nuPlan 轨迹 + 地图 + 简单规则控制。
 
 ---
 
-## 2. 系统架构设计
+## 1. 输入/输出契约
 
-系统整体分为四层架构：**数据接入层**、**核心仿真层**、**策略干扰层**、**数据输出层**。
+### 输入
+- `nuplan_db_path`：nuPlan 数据库根目录
+- `map_root`：nuPlan 地图根目录
+- `scene_tokens`：待处理场景列表（或通过过滤规则生成）
+- `config.yaml`：参数配置
 
-### 2.1 数据接入层 (Data Ingestion Layer)
-
-负责解析原始路测数据和高精地图。
-
-* **轨迹提取器**：从 nuScenes/Waymo 数据集中提取自车（Ego）及周围障碍物（Agents）的历史轨迹 。
-* **地图解析器**：将复杂的几何地图转换为算法可用的**离散车道中心线点集 (Waypoints)**。这是专家系统判断“路在哪”的唯一依据。
-
-### 2.2 策略干扰层 (The Perturber)
-
-系统的“捣乱者”，负责制造反事实分歧点。
-
-* **种子管理器**：将场景 ID (Token) 转化为唯一的随机种子，确保每个场景的扰动是固定的。
-* **扰动动作库**：预定义的错误动作集合（如急刹、猛打方向、漂移等）。
-
-### 2.3 核心仿真层 (Simulation Core)
-
-系统的“世界模型”，负责推演物理结果。
-
-* **运动学引擎**：基于自行车模型（Bicycle Model）计算车辆下一帧状态。
-* **伪专家系统 (Pseudo-Expert)**：基于规则（PID + IDM）的控制器，负责在车辆被干扰后接管控制，尝试修正错误。
-
-### 2.4 数据输出层 (Data Sink)
-
-* **质量过滤器**：剔除物理违规或无意义的数据。
-* **格式化存储**：将生成的轨迹、标签、场景元数据打包存储。
+### 输出
+- `output_root/`：生成数据目录
+- `output_root/manifest.json`：全量索引与统计
+- `output_root/scenes/<scene_token>/`：单场景结果
+  - `meta.json`：场景元信息、扰动参数、seed
+  - `trajectory.parquet`：主轨迹数据
+  - `labels.json`：碰撞/恢复/最小 TTC 等标签
+  - `debug.json`（可选）：过滤原因、异常信息
 
 ---
 
-## 3. 详细模块功能设计
+## 2. 依赖与环境
 
-### 3.1 扰动工厂设计 (Perturbation Factory)
-
-这是生成“反事实”的核心。我们需要设计多维度的扰动策略：
-
-1. **脉冲式扰动 (Impulse)**：在  时刻施加单次强干扰，随后立即撤销。
-* *典型动作*：误踩油门（Kick-down）、误踩刹车（Panic Brake）、方向盘手滑（Jerk）。
-
-
-2. **持续性扰动 (Continuous)**：在  时间段内叠加噪声。
-* *典型动作*：长时漂移（Drift，模拟四轮定位偏差）、方向盘卡死（Frozen Steering）。
-
-
-3. **语义级扰动 (Semantic)**：改变驾驶意图。
-* *典型动作*：虚假变道（Fake Lane Change，车头探出又缩回）、强行切入（Aggressive Cut-in）。
-
-
-
-### 3.2 伪专家设计 (The Pseudo-Expert)
-
-专家系统的任务是充当“守护天使”，其核心逻辑必须简单、鲁棒、可解释。不建议使用神经网络，建议使用经典控制理论。
-
-1. **横向控制 (PID)**：
-* 输入：车辆当前位姿、最近车道中心线。
-* 计算：横向误差 (CTE) 和航向误差 (Heading Error)。
-* 输出：方向盘转角。确保车辆能平滑地画出 S 型曲线回到车道。
-
-
-2. **纵向控制 (IDM)**：
-* 输入：与前车的距离、相对速度。
-* 输出：加速度/减速度。确保不发生追尾。
-
-
-
-### 3.3 物理约束系统 (Physics Clamping)
-
-为了防止生成“科幻片”数据，必须对所有输出施加硬约束：
-
-* **转角限制**：前轮转角不得超过机械极限（如 ）。
-* **加速度限制**：加减速不得超过轮胎摩擦圆极限（如 ）。
-* **非完整约束**：车辆不能横向平移，只能沿车头方向移动。
+- Python 3.9+（建议与 nuPlan devkit 兼容）
+- nuPlan devkit（本地安装，供数据读取与地图 API）
+- 常用依赖：numpy, pandas, shapely, pyarrow
 
 ---
 
-## 4. 业务流程逻辑 (Pipeline Workflow)
+## 3. 目录与模块划分（推荐）
 
-以下是单条数据生成的标准生命周期：
-
-1. **初始化 (Init)**：
-* 加载场景 ，获取对应的地图  和初始状态 。
-* 利用  生成唯一随机种子 。
-
-
-2. **扰动注入 (Injection)**：
-* 根据  从扰动库中随机抽取一个策略（例如：向左猛打方向 ）。
-* 在  时刻，强制覆盖原有动作，执行扰动动作。
-
-
-3. **仿真闭环 (Loop)**：
-* **感知**：专家系统读取当前状态，计算与车道线的偏差。
-* **决策**：专家系统计算修正动作（例如：向右回正方向）。
-* **执行**：运动学引擎根据修正动作更新车辆位置到 。
-* **记录**：保存当前帧的状态数据。
-
-
-4. **验证与过滤 (Validation)**：
-* 检查生成的轨迹是否发生碰撞？
-* 检查车辆是否驶出地图边界（Off-road）？
-* 如果发生碰撞，标记为“事故负样本”。
-* 如果没有碰撞且成功回正，标记为“高价值安全样本”。
-
-
+```
+Counterfactual_Data_Synthesis/
+  doc/
+  src/
+    ingest/        # nuPlan 数据读取与场景选择
+    map/           # 地图解析与几何查询
+    perturb/       # 扰动策略库
+    sim/           # 运动学仿真与专家控制
+    label/         # 标签、碰撞、TTC 计算
+    io/            # 数据写出与manifest
+    utils/
+  config/
+    default.yaml
+  tools/
+    run_pipeline.py
+```
 
 ---
 
-## 5. 数据应用与交付物
+## 4. 数据结构定义（内部统一接口）
 
-### 5.1 交付数据格式
+### 4.1 基本结构
 
-生成的每一条数据应包含以下字段：
+- `EgoState`：`t, x, y, yaw, v, a, steer`
+- `AgentState`：`track_token, t, x, y, yaw, v, size(l,w), type`
+- `Frame`：`t, ego: EgoState, agents: List[AgentState]`
+- `Scenario`：`scene_token, map_name, frames: List[Frame]`
 
-* `Scene_Token`: 原始场景 ID。
-* `Perturbation_Type`: 施加的扰动类型（如 "Sudden_Left_Turn"）。
-* `Trajectory`: 生成的  时间序列。
-* `Is_Recovered`: 是否成功救车（Boolean）。
-* `Min_TTC`: 最小碰撞时间（用于衡量危险程度）。
+### 4.2 轨迹表 schema（输出）
 
-### 5.2 数据用途
-
-1. **行为预测训练 (Prediction)**：让模型学习在车辆偏离时，未来可能的轨迹是什么。
-2. **规划控制训练 (Planning)**：作为强化学习（RL）或模仿学习（IL）的初始分布，让模型学习如何从错误状态恢复（Recovery Policy）。
-3. **评测基准 (Benchmark)**：构建一套“高危场景库”，用于测试新的自动驾驶算法是否安全。
+`trajectory.parquet` 字段（按时间升序）：
+- `t`：时间戳（秒）
+- `x, y, yaw`：位置与朝向（ENU）
+- `v`：速度（m/s）
+- `a`：加速度（m/s^2）
+- `steer`：前轮转角（rad）
+- `cmd_a, cmd_steer`：控制命令（用于诊断）
+- `perturb_on`：是否处于扰动时段
 
 ---
 
-## 6. 总结与优势
+## 5. Pipeline（工程流程）
 
-这套方案的最大优势在于**“低成本、高产出”**：
+1. **Scene Selection**
+   - 根据地图名、速度区间、车道曲率等规则筛选场景
+2. **Load**
+   - 读取 `scene_token` 对应 Ego/Agents 轨迹与地图要素
+3. **Seed**
+   - `seed = hash(scene_token) ^ global_seed`
+4. **Perturb Plan**
+   - 随机选择扰动类型、强度、触发时刻 `t0`
+5. **Sim Loop**
+   - `perception`：车道中心线、前车距离等
+   - `control`：PID + IDM 输出 `cmd_a, cmd_steer`
+   - `inject`：在扰动窗口内覆盖/叠加控制
+   - `propagate`：运动学模型更新状态
+   - `record`：写入轨迹
+6. **Validate & Label**
+   - 碰撞检测 / Off-road / 恢复判定 / Min TTC
+7. **Write**
+   - 落盘 `meta.json + trajectory.parquet + labels.json`
+8. **Manifest Update**
+   - 统计成功率、事故率、过滤原因分布
 
-1. **极速生成**：相比 CARLA 等渲染仿真，本方案只需计算矩阵，单机单核每秒可生成数百条轨迹。
-2. **无限拓展**：只需增加扰动库的动作类型，就能无限扩充数据的丰富度。
-3. **完全可控**：通过随机种子机制，任何一条异常数据都可以被精确定位和复现，便于算法调试。
+---
 
-这是一个非常适合快速落地、验证算法鲁棒性的数据闭环方案。
+## 6. 关键模块实现细节
+
+### 6.1 Ingest（nuPlan 数据读取）
+
+- 输入 `scene_token`，从 nuPlan DB 拉取：
+  - Ego 历史/未来状态序列
+  - 邻车 track 列表及其时间对齐状态
+  - 地图名与可用地图 API
+
+**注意**：采样间隔 `Δt` 以 nuPlan 原始时间戳为准，不硬编码。
+
+### 6.2 Map（几何查询）
+
+- `get_lane_centerline(x, y)`：返回最近车道中心线片段（waypoints）
+- `is_off_road(ego_polygon)`：判断是否超出道路边界
+- `get_speed_limit(x, y)`：用于纵向控制上限
+
+### 6.3 Perturb（扰动库）
+
+**扰动类型**
+- Impulse：单次强干预（1~3 帧）
+- Continuous：持续干预（τ 秒）
+- Semantic：意图偏移（沿相邻车道偏移）
+
+**扰动参数化**
+- `steer_delta`：`[min, max]`
+- `acc_delta`：`[min, max]`
+- `duration`：`[min, max]`
+- `trigger_t`：按时间窗或事件条件采样
+
+### 6.4 Sim（运动学模型）
+
+**状态**：`[x, y, yaw, v]`
+
+**更新**：
+- `x_{t+1} = x_t + v_t * cos(yaw_t) * Δt`
+- `y_{t+1} = y_t + v_t * sin(yaw_t) * Δt`
+- `yaw_{t+1} = yaw_t + v_t / L * tan(δ_t) * Δt`
+- `v_{t+1} = v_t + a_t * Δt`
+
+**物理约束**
+- `|δ| <= δ_max`
+- `a_min <= a <= a_max`
+- `|a_lat| <= a_lat_max`，其中 `a_lat = v^2 * tan(δ) / L`
+
+### 6.5 Expert（PID + IDM）
+
+**PID 横向控制**
+- 输入：最近中心线点、CTE、Heading Error
+- 输出：`cmd_steer`
+
+**IDM 纵向控制**
+- 输入：前车距离 `d`、相对速度 `Δv`
+- 输出：`cmd_a`
+
+### 6.6 Label（碰撞/TTC/恢复）
+
+- **碰撞**：Ego polygon 与任一 agent polygon 相交
+- **Off-road**：Ego polygon 不在道路区域
+- **Recovery**：在 `T_recover` 内满足 `CTE <= eps_cte` 且 `|heading_err| <= eps_yaw`
+- **Min TTC**：基于相对速度与距离的近似 TTC 计算
+
+---
+
+## 7. 配置文件规范（config.yaml）
+
+```yaml
+seed: 2026
+sample:
+  t_hist: 2.0      # 秒
+  t_fut: 6.0       # 秒
+  dt: null         # 若为 null，使用 nuPlan 原始间隔
+vehicle:
+  wheel_base: 2.8
+  steer_limit: 0.6
+  a_min: -6.0
+  a_max: 3.0
+  a_lat_max: 4.0
+perturb:
+  types: [impulse, continuous, semantic]
+  impulse:
+    steer_delta: [-0.4, 0.4]
+    acc_delta: [-2.0, 2.0]
+    duration_steps: [1, 3]
+  continuous:
+    steer_delta: [-0.2, 0.2]
+    acc_delta: [-1.0, 1.0]
+    duration_sec: [0.5, 2.0]
+  semantic:
+    lateral_offset: [-1.5, 1.5]
+controller:
+  pid:
+    kp: 1.2
+    ki: 0.0
+    kd: 0.2
+  idm:
+    desired_speed: 13.9
+    min_gap: 2.0
+    time_headway: 1.2
+label:
+  recover_time: 3.0
+  eps_cte: 0.3
+  eps_yaw: 0.1
+output:
+  format: parquet
+  overwrite: false
+```
+
+---
+
+## 8. 复现性策略
+
+- 固定 `global seed`
+- `scene_token` 参与扰动参数采样
+- 完整记录：扰动类型、强度、触发时刻、控制器参数
+
+---
+
+## 9. 性能与并行策略
+
+- 以场景为单位并行（多进程/多线程）
+- Map 解析结果缓存（按 `map_name`）
+- 轨迹写出采用批量 Parquet
+
+---
+
+## 10. 运行方式（CLI 形态）
+
+```bash
+python tools/run_pipeline.py \
+  --config config/default.yaml \
+  --nuplan_db /data/nuplan/db \
+  --map_root /data/nuplan/maps \
+  --output /data/counterfactual_out
+```
+
+---
+
+## 11. 测试与验证
+
+- **单元测试**：运动学模型、PID/IDM、碰撞检测
+- **一致性测试**：同一 `scene_token` 生成结果应稳定一致
+- **性能测试**：统计每秒生成样本数
+
+---
+
+## 12. 交付清单
+
+- 文档：本工程规范
+- 代码：核心模块 + 运行入口
+- 数据：反事实轨迹集 + manifest

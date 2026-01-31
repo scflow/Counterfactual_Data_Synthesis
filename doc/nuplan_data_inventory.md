@@ -1,0 +1,147 @@
+# nuPlan Data Inventory (local)
+
+- db files: 64
+- map_names: 4
+- scenario_types: 67
+- log_names: 64
+
+## map_names
+- sg-one-north
+- us-ma-boston
+- us-nv-las-vegas-strip
+- us-pa-pittsburgh-hazelwood
+
+## scenario_types (sorted by frequency)
+- stationary (188367)
+- on_intersection (84376)
+- on_pickup_dropoff (78646)
+- near_pedestrian_on_crosswalk (74407)
+- traversing_intersection (57786)
+- on_traffic_light_intersection (57415)
+- medium_magnitude_speed (51613)
+- traversing_traffic_light_intersection (50622)
+- stationary_in_traffic (42400)
+- traversing_pickup_dropoff (39330)
+- high_magnitude_speed (39329)
+- near_pedestrian_at_pickup_dropoff (24800)
+- on_stopline_traffic_light (21460)
+- stationary_at_traffic_light_without_lead (16020)
+- near_long_vehicle (10793)
+- low_magnitude_speed (8344)
+- traversing_crosswalk (7855)
+- on_stopline_stop_sign (5161)
+- stationary_at_traffic_light_with_lead (3922)
+- near_trafficcone_on_driveable (3691)
+- near_high_speed_vehicle (3647)
+- on_stopline_crosswalk (3519)
+- near_multiple_vehicles (2860)
+- following_lane_with_slow_lead (2559)
+- on_all_way_stop_intersection (2485)
+- near_construction_zone_sign (1457)
+- following_lane_without_lead (1190)
+- on_carpark (850)
+- behind_long_vehicle (781)
+- starting_right_turn (604)
+- starting_left_turn (600)
+- high_lateral_acceleration (600)
+- starting_protected_noncross_turn (494)
+- near_barrier_on_driveable (438)
+- accelerating_at_traffic_light (386)
+- starting_unprotected_cross_turn (353)
+- accelerating_at_traffic_light_without_lead (351)
+- starting_straight_traffic_light_intersection_traversal (340)
+- waiting_for_pedestrian_to_cross (316)
+- starting_straight_stop_sign_intersection_traversal (266)
+- near_pedestrian_on_crosswalk_with_ego (233)
+- starting_protected_cross_turn (207)
+- stopping_at_crosswalk (169)
+- stopping_with_lead (159)
+- starting_unprotected_noncross_turn (150)
+- near_multiple_pedestrians (120)
+- starting_high_speed_turn (83)
+- stopping_at_stop_sign_without_lead (80)
+- stopping_at_stop_sign_no_crosswalk (74)
+- stopping_at_traffic_light_without_lead (69)
+- following_lane_with_lead (56)
+- accelerating_at_crosswalk (55)
+- accelerating_at_stop_sign (53)
+- behind_pedestrian_on_driveable (43)
+- accelerating_at_traffic_light_with_lead (35)
+- stationary_at_crosswalk (29)
+- starting_low_speed_turn (25)
+- accelerating_at_stop_sign_no_crosswalk (24)
+- changing_lane (22)
+- stopping_at_stop_sign_with_lead (18)
+- stopping_at_traffic_light_with_lead (18)
+- behind_pedestrian_on_pickup_dropoff (17)
+- changing_lane_to_left (15)
+- changing_lane_to_right (7)
+- high_magnitude_jerk (7)
+- behind_bike (2)
+- traversing_narrow_lane (1)
+
+## log_names
+- 2021.05.12.22.00.38_veh-35_01008_01518
+- 2021.05.12.22.28.35_veh-35_00620_01164
+- 2021.05.12.23.36.44_veh-35_00152_00504
+- 2021.05.12.23.36.44_veh-35_01133_01535
+- 2021.05.12.23.36.44_veh-35_02035_02387
+- 2021.05.25.14.16.10_veh-35_01690_02183
+- 2021.06.03.12.02.06_veh-35_00233_00609
+- 2021.06.03.13.55.17_veh-35_00073_00426
+- 2021.06.07.12.54.00_veh-35_01843_02314
+- 2021.06.07.18.53.26_veh-26_00005_00427
+- 2021.06.08.12.54.54_veh-26_04262_04732
+- 2021.06.08.14.35.24_veh-26_02555_03004
+- 2021.06.08.16.31.33_veh-38_01589_02072
+- 2021.06.09.11.54.15_veh-12_04366_04810
+- 2021.06.09.12.39.51_veh-26_01943_02303
+- 2021.06.09.12.39.51_veh-26_05620_06003
+- 2021.06.09.14.03.17_veh-12_02584_02970
+- 2021.06.09.14.58.55_veh-35_01095_01484
+- 2021.06.09.14.58.55_veh-35_01894_02311
+- 2021.06.09.17.23.18_veh-38_00773_01140
+- 2021.06.09.17.23.18_veh-38_02526_03027
+- 2021.06.09.17.37.09_veh-12_00404_00864
+- 2021.06.14.16.32.09_veh-35_05038_05402
+- 2021.06.14.16.48.02_veh-12_04057_04438
+- 2021.06.14.16.48.02_veh-12_04978_05337
+- 2021.06.14.17.26.26_veh-38_04544_04920
+- 2021.06.14.18.33.41_veh-35_03901_04264
+- 2021.06.14.18.42.45_veh-12_03445_03902
+- 2021.06.14.19.22.11_veh-38_01480_01860
+- 2021.06.23.15.56.12_veh-16_00839_01285
+- 2021.06.23.16.54.19_veh-35_00808_01256
+- 2021.06.23.17.31.36_veh-16_00016_00377
+- 2021.06.23.20.43.31_veh-16_03607_04007
+- 2021.06.28.15.02.02_veh-38_02398_02848
+- 2021.06.28.16.29.11_veh-38_01415_01821
+- 2021.06.28.16.29.11_veh-38_03263_03766
+- 2021.06.28.16.57.59_veh-26_00016_00484
+- 2021.07.09.17.06.37_veh-35_00258_00748
+- 2021.07.09.20.59.12_veh-38_01208_01692
+- 2021.07.16.00.51.05_veh-17_01352_01901
+- 2021.07.16.18.06.21_veh-38_03231_03712
+- 2021.07.16.18.06.21_veh-38_04471_04922
+- 2021.07.16.18.06.21_veh-38_04933_05307
+- 2021.07.16.18.19.22_veh-35_00440_00858
+- 2021.07.16.20.45.29_veh-35_00600_01084
+- 2021.07.16.20.45.29_veh-35_01095_01486
+- 2021.07.24.20.37.45_veh-17_00015_00375
+- 2021.07.24.23.50.16_veh-17_01696_02071
+- 2021.08.09.17.55.59_veh-28_00021_00307
+- 2021.08.17.16.57.11_veh-08_01200_01636
+- 2021.08.17.17.17.01_veh-45_02314_02798
+- 2021.08.17.18.54.02_veh-45_00665_01065
+- 2021.08.24.13.12.55_veh-45_00386_00472
+- 2021.08.30.14.54.34_veh-40_00439_00835
+- 2021.09.16.15.12.03_veh-42_01037_01434
+- 2021.10.01.19.16.42_veh-28_02011_02410
+- 2021.10.01.19.16.42_veh-28_03307_03808
+- 2021.10.05.07.10.04_veh-52_01442_01802
+- 2021.10.06.07.26.10_veh-52_00006_00398
+- 2021.10.06.17.43.07_veh-28_00508_00877
+- 2021.10.11.02.57.41_veh-50_00352_00535
+- 2021.10.11.02.57.41_veh-50_01522_02088
+- 2021.10.11.07.12.18_veh-50_00211_00304
+- 2021.10.11.08.31.07_veh-50_01750_01948

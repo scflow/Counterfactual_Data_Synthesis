@@ -1,0 +1,12 @@
+perturb:
+  types: [impulse, continuous, semantic]
+  impulse:
+    steer_delta: [-0.4, 0.4]
+    acc_delta: [-2.0, 2.0]
+    duration_steps: [1, 3]
+  continuous:
+    steer_delta: [-0.2, 0.2]
+    acc_delta: [-1.0, 1.0]
+    duration_sec: [0.5, 2.0]
+  semantic:
+    lateral_offset: [-1.5, 1.5]
